@@ -58,6 +58,7 @@ package com.example.t2305m_wcd.controller;
 
 import com.example.t2305m_wcd.dao.StudentDAO;
 import com.example.t2305m_wcd.dao.factory.DAOFactory;
+import com.example.t2305m_wcd.database.Database;
 import com.example.t2305m_wcd.entity.ClassEntity;
 import com.example.t2305m_wcd.entity.Student;
 
@@ -80,7 +81,9 @@ public class StudentController extends HttpServlet {
     public void init() throws ServletException {
         super.init();
         // Retrieve the connection from the ServletContext
-        Connection connection = (Connection) getServletContext().getAttribute("DBConnection");
+//        Connection connection = (Connection) getServletContext().getAttribute("DBConnection");
+        Connection connection = Database.createInstance().getConnection();
+
         // Use DAOFactory to create the StudentDAO
         studentDAO = DAOFactory.getStudentDAO(connection);
     }
@@ -122,22 +125,43 @@ public class StudentController extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         try {
-            Long classId = req.getParameter("classId") != null
-                    ? Long.parseLong(req.getParameter("classId"))
-                    : null;
-
+            // Parse and validate classId
+            String classIdParam = req.getParameter("classId");
             ClassEntity classEntity = null;
-            if (classId != null) {
-                classEntity = new ClassEntity();
-                classEntity.setId(classId);
+
+            if (classIdParam != null && !classIdParam.trim().isEmpty()) {
+                try {
+                    Long classId = Long.parseLong(classIdParam);
+                    classEntity = new ClassEntity();
+                    classEntity.setId(classId);
+                } catch (NumberFormatException e) {
+                    req.setAttribute("errorMessage", "Invalid class ID format.");
+                    renderForm(req, resp);
+                    return;
+                }
+            }
+
+            // Validate and create new student
+            String name = req.getParameter("name");
+            String email = req.getParameter("email");
+            String address = req.getParameter("address");
+            String telephone = req.getParameter("telephone");
+
+            if (name == null || name.trim().isEmpty() ||
+                    email == null || email.trim().isEmpty() ||
+                    address == null || address.trim().isEmpty() ||
+                    telephone == null || telephone.trim().isEmpty()) {
+                req.setAttribute("errorMessage", "All fields are required.");
+                renderForm(req, resp);
+                return;
             }
 
             Student newStudent = new Student(
-                    null,
-                    req.getParameter("name"),
-                    req.getParameter("email"),
-                    req.getParameter("address"),
-                    req.getParameter("telephone"),
+                    null, // ID will be auto-generated
+                    name.trim(),
+                    email.trim(),
+                    address.trim(),
+                    telephone.trim(),
                     classEntity
             );
 
@@ -149,4 +173,5 @@ public class StudentController extends HttpServlet {
             renderForm(req, resp);
         }
     }
+
 }

@@ -47,7 +47,14 @@ public class StudentDAOImpl implements StudentDAO {
             stmt.setString(2, student.getEmail());
             stmt.setString(3, student.getAddress());
             stmt.setString(4, student.getTelephone());
-            stmt.setLong(5, student.getClassEntity().getId());
+
+            // Check if classEntity is null before accessing getId()
+            if (student.getClassEntity() != null) {
+                stmt.setLong(5, student.getClassEntity().getId());
+            } else {
+                stmt.setNull(5, java.sql.Types.BIGINT); // Set null for class_id if classEntity is null
+            }
+
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
